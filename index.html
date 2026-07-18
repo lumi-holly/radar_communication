@@ -1,0 +1,382 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>通信组网与边缘处理仿真</title>
+  <style>
+    :root{
+      --bg:#fff9fb;
+      --panel:#ffffff;
+      --ink:#242426;
+      --muted:#666a72;
+      --line:#242426;
+      --blue:#58b8e8;
+      --blue-deep:#277ca6;
+      --blue-soft:#eaf8fe;
+      --pink:#ef72a7;
+      --pink-soft:#fff0f6;
+      --green:#65c979;
+      --green-soft:#effaf1;
+      --amber:#efb65d;
+      --red:#df596a;
+      --shadow:4px 5px 0 rgba(36,36,38,.09);
+    }
+    *{box-sizing:border-box}
+    body{
+      margin:0;
+      color:var(--ink);
+      background-color:var(--bg);
+      background-image:radial-gradient(circle at 7% 4%,rgba(239,114,167,.10) 0 72px,transparent 73px),radial-gradient(circle at 94% 10%,rgba(88,184,232,.10) 0 92px,transparent 93px),radial-gradient(circle at 86% 88%,rgba(101,201,121,.08) 0 110px,transparent 111px);
+      font-family:"Microsoft YaHei","PingFang SC",Arial,sans-serif;
+      font-size:16px;
+      line-height:1.65;
+    }
+    button{font:inherit}
+    .topbar{
+      background:linear-gradient(90deg,rgba(239,114,167,.16),rgba(88,184,232,.14) 50%,rgba(101,201,121,.14));
+      border-bottom:2px solid var(--line);
+      padding:22px 28px;
+    }
+    .topbar-inner{
+      max-width:1260px;
+      margin:0 auto;
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      gap:24px;
+    }
+    .title-row{display:flex;align-items:center;gap:13px}
+    .color-orbs{display:flex;gap:5px;flex:0 0 auto}
+    .color-orbs i{width:16px;height:16px;border:2px solid var(--ink);border-radius:50%;display:block}
+    .color-orbs i:nth-child(1){background:var(--pink)}.color-orbs i:nth-child(2){background:var(--blue)}.color-orbs i:nth-child(3){background:var(--green)}
+    h1{font-family:"Arial Rounded MT Bold","Microsoft YaHei",sans-serif;font-size:28px;line-height:1.3;margin:0 0 6px;font-weight:800;letter-spacing:.02em}
+    .subtitle{font-size:15px;color:var(--muted)}
+    .health{
+      flex:0 0 auto;
+      display:flex;
+      align-items:center;
+      gap:9px;
+      padding:9px 14px;
+      border:2px solid var(--ink);
+      border-radius:999px;
+      background:var(--green-soft);
+      color:#315c3a;
+      font-size:15px;
+      font-weight:600;
+      box-shadow:2px 3px 0 rgba(36,36,38,.10);
+    }
+    .dot{width:10px;height:10px;border-radius:50%;background:var(--green)}
+    .page{max-width:1260px;margin:0 auto;padding:20px 22px 30px}
+    .panel{
+      background:var(--panel);
+      border:2px solid var(--line);
+      border-radius:18px;
+      box-shadow:var(--shadow);
+      margin-bottom:16px;
+      overflow:hidden;
+    }
+    .panel-head{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:16px;
+      padding:15px 18px;
+      border-bottom:1.5px solid var(--line);
+    }
+    .panel-head h2{font-family:"Arial Rounded MT Bold","Microsoft YaHei",sans-serif;font-size:19px;margin:0}
+    .tag{font-size:14px;color:var(--blue-deep);background:var(--blue-soft);border:1.5px solid var(--ink);padding:3px 10px;border-radius:999px}
+    .controls{
+      display:flex;
+      flex-wrap:wrap;
+      justify-content:space-between;
+      gap:12px;
+      padding:14px 16px;
+    }
+    .scene-group,.action-group{display:flex;flex-wrap:wrap;gap:9px}
+    button{
+      border:2px solid var(--ink);
+      background:#fff;
+      color:var(--ink);
+      border-radius:999px;
+      padding:9px 15px;
+      cursor:pointer;
+      transition:.15s ease;
+    }
+    button:hover{transform:translateY(-1px);box-shadow:2px 3px 0 rgba(36,36,38,.14)}
+    button.active{background:var(--blue);color:#17242b;box-shadow:2px 3px 0 rgba(36,36,38,.18);font-weight:700}
+    .scene[data-scene="congestion"].active{background:var(--pink)}
+    .scene[data-scene="fiberFail"].active{background:var(--amber)}
+    .scene[data-scene="nodeFail"].active{background:var(--green)}
+    button.secondary{background:#fff}
+    .canvas-wrap{padding:12px 16px 4px}
+    canvas{display:block;width:100%;height:auto;border:1.5px solid var(--line);border-radius:14px;background:#fffdfd}
+    .legend{
+      display:flex;
+      flex-wrap:wrap;
+      gap:18px;
+      padding:9px 18px 14px;
+      color:var(--muted);
+      font-size:14px;
+    }
+    .legend i{display:inline-block;width:19px;height:3px;margin-right:6px;vertical-align:middle}
+    .boundary{
+      margin:0 16px 16px;
+      padding:10px 13px;
+      background:linear-gradient(90deg,var(--blue-soft),#fff);
+      border:1px solid #b7ddec;
+      border-left:6px solid var(--blue);
+      border-radius:10px;
+      color:#53636f;
+      font-size:14px;
+    }
+    .metrics{
+      display:grid;
+      grid-template-columns:repeat(6,1fr);
+      gap:12px;
+      margin-bottom:16px;
+    }
+    .metric{
+      --accent:var(--blue);
+      background:var(--panel);
+      border:2px solid var(--line);
+      border-top:7px solid var(--accent);
+      border-radius:15px;
+      padding:14px 16px;
+      box-shadow:var(--shadow);
+    }
+    .metric:nth-child(2){--accent:var(--pink)}.metric:nth-child(3){--accent:var(--green)}.metric:nth-child(4){--accent:var(--amber)}.metric:nth-child(5){--accent:var(--pink)}.metric:nth-child(6){--accent:var(--blue)}
+    .metric small{display:block;color:var(--muted);font-size:14px;margin-bottom:2px}
+    .metric b{font-size:27px;line-height:1.25;color:var(--ink)}
+    .metric .unit{font-size:14px;color:var(--muted);margin-left:4px}
+    .lower-grid{display:grid;grid-template-columns:1.05fr .95fr;gap:16px}
+    .queue-list{padding:7px 18px 15px}
+    .queue-row{
+      display:grid;
+      grid-template-columns:54px minmax(130px,1fr) 2fr 50px;
+      align-items:center;
+      gap:12px;
+      padding:10px 0;
+      border-bottom:1px solid #e8edf0;
+    }
+    .queue-row:last-child{border-bottom:0}
+    .priority{font-weight:700;color:var(--blue)}
+    .queue-name{font-size:15px}
+    .bar{height:12px;border-radius:999px;background:#e6edf1;overflow:hidden}
+    .bar span{display:block;height:100%;border-radius:999px;background:var(--blue);transition:width .3s ease}
+    .queue-row:nth-child(1) .bar span{background:var(--pink)}.queue-row:nth-child(2) .bar span{background:var(--amber)}.queue-row:nth-child(3) .bar span{background:var(--blue)}.queue-row:nth-child(4) .bar span{background:var(--green)}
+    .queue-value{text-align:right;color:var(--muted);font-size:14px}
+    .scene-copy{padding:16px 18px 5px}
+    .scene-copy strong{display:block;font-size:18px;margin-bottom:5px}
+    .scene-copy p{margin:0;color:#53636f}
+    .log{padding:5px 18px 15px;min-height:168px}
+    .log-item{display:grid;grid-template-columns:72px 1fr;gap:10px;padding:7px 0;border-bottom:1px dashed #dce4e9;font-size:14px}
+    .log-time{color:var(--blue);font-variant-numeric:tabular-nums}
+    .analytics-grid{display:grid;grid-template-columns:1.35fr .65fr;gap:16px}
+    .trend-wrap{padding:12px 16px 16px}
+    #trend{min-height:260px}
+    .compare-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:12px 14px 15px}
+    .compare-card{--accent:var(--blue);border:1.5px solid var(--ink);border-left:7px solid var(--accent);border-radius:13px;padding:10px 11px;background:#fff;transition:.15s ease}
+    .compare-card[data-compare="congestion"]{--accent:var(--pink)}.compare-card[data-compare="fiberFail"]{--accent:var(--amber)}.compare-card[data-compare="nodeFail"]{--accent:var(--green)}
+    .compare-card.active{background:color-mix(in srgb,var(--accent) 16%,white);box-shadow:2px 3px 0 rgba(36,36,38,.13);transform:translateY(-1px)}
+    .compare-card strong{display:block;font-size:15px;margin-bottom:3px}.compare-card span{display:block;color:var(--muted);font-size:12px;line-height:1.55}.compare-card b{color:var(--ink);font-weight:700}
+    footer{max-width:1260px;margin:0 auto;padding:0 22px 26px;color:var(--muted);font-size:14px}
+    @media(max-width:1100px){.metrics{grid-template-columns:repeat(3,1fr)}.analytics-grid{grid-template-columns:1fr}}
+    @media(max-width:900px){
+      .topbar-inner{align-items:flex-start}.metrics{grid-template-columns:repeat(2,1fr)}.lower-grid{grid-template-columns:1fr}
+    }
+    @media(max-width:620px){
+      .topbar{padding:18px}.topbar-inner{display:block}.health{display:inline-flex;margin-top:12px}h1{font-size:23px}
+      .page{padding:14px}.metrics{grid-template-columns:1fr 1fr}.controls{display:block}.action-group{margin-top:10px}.compare-grid{grid-template-columns:1fr}
+      .queue-row{grid-template-columns:44px 1fr 70px}.queue-row .bar{grid-column:2/4}.metric b{font-size:24px}
+    }
+  </style>
+</head>
+<body>
+  <header class="topbar">
+    <div class="topbar-inner">
+      <div>
+        <div class="title-row"><span class="color-orbs" aria-hidden="true"><i></i><i></i><i></i></span><h1>通信组网与边缘处理仿真</h1></div>
+        <div class="subtitle">16 节点离线演示｜验证主备链路、拥塞调度与节点故障隔离</div>
+      </div>
+      <div class="health"><span class="dot" id="healthDot"></span><span id="healthText">系统运行正常</span></div>
+    </div>
+  </header>
+
+  <main class="page">
+    <section class="panel" aria-label="仿真控制">
+      <div class="controls">
+        <div class="scene-group">
+          <button class="scene active" data-scene="normal">正常运行</button>
+          <button class="scene" data-scene="congestion">链路拥塞</button>
+          <button class="scene" data-scene="fiberFail">骨干断链</button>
+          <button class="scene" data-scene="nodeFail">GF7 离线</button>
+        </div>
+        <div class="action-group">
+          <button id="runBtn" class="secondary">暂停</button>
+          <button id="resetBtn" class="secondary">重置</button>
+          <button id="exportBtn" class="secondary">导出 CSV</button>
+        </div>
+      </div>
+    </section>
+
+    <section class="panel">
+      <div class="panel-head"><h2>节点与当前传输路径</h2><span class="tag" id="sceneTag">正常运行</span></div>
+      <div class="canvas-wrap"><canvas id="topology" width="1180" height="500"></canvas></div>
+      <div class="legend">
+        <span><i style="background:#58b8e8"></i>主路径</span>
+        <span><i style="background:#efb65d"></i>备份或拥塞路径</span>
+        <span><i style="background:#df596a"></i>故障节点</span>
+        <span>■ BB 骨干节点　● GF 补盲节点</span>
+      </div>
+      <div class="boundary">仿真从雷达前端输出点迹之后开始，重点验证通信、缓存和边缘调度；不模拟 IQ、CFAR、威胁评分或告警分级。动态数值为合成数据，不代表设备实测。</div>
+    </section>
+
+    <section class="metrics" aria-label="关键指标">
+      <div class="metric"><small>在线节点</small><b id="online">16/16</b></div>
+      <div class="metric"><small>实际上行吞吐</small><b id="uplink">20.0</b><span class="unit">Mbps</span></div>
+      <div class="metric"><small>当前可用容量</small><b id="capacity">100</b><span class="unit">Mbps</span></div>
+      <div class="metric"><small title="95% 的近5秒已送达数据，其时延不超过该值">近5秒 P95 时延</small><b id="latency">28</b><span class="unit">ms</span></div>
+      <div class="metric"><small>合成链路丢包率</small><b id="loss">0.2</b><span class="unit">%</span></div>
+      <div class="metric"><small>队列总积压</small><b id="backlog">0.2</b><span class="unit">MB</span></div>
+    </section>
+
+    <div class="analytics-grid">
+      <section class="panel">
+        <div class="panel-head"><h2>运行趋势</h2><span class="tag">当前场景最近 50 秒</span></div>
+        <div class="trend-wrap"><canvas id="trend" width="760" height="270" aria-label="吞吐、P95时延和积压趋势"></canvas></div>
+      </section>
+      <section class="panel">
+        <div class="panel-head"><h2>四场景基准对比</h2><span class="tag">合成参考值</span></div>
+        <div class="compare-grid">
+          <div class="compare-card active" data-compare="normal"><strong>正常运行</strong><span>吞吐 <b>20.0 Mbps</b></span><span>P95 <b>28 ms</b>｜16/16</span></div>
+          <div class="compare-card" data-compare="congestion"><strong>链路拥塞</strong><span>吞吐 <b>8.0 Mbps</b></span><span>P95 <b>126 ms</b>｜积压明显</span></div>
+          <div class="compare-card" data-compare="fiberFail"><strong>骨干断链</strong><span>备份 <b>50 Mbps</b></span><span>P95 <b>58 ms</b>｜主备切换</span></div>
+          <div class="compare-card" data-compare="nodeFail"><strong>GF7 离线</strong><span>吞吐 <b>18.8 Mbps</b></span><span>P95 <b>32 ms</b>｜15/16</span></div>
+        </div>
+      </section>
+    </div>
+
+    <div class="lower-grid">
+      <section class="panel">
+        <div class="panel-head"><h2>优先级队列</h2><span class="tag">关键业务优先</span></div>
+        <div class="queue-list">
+          <div class="queue-row"><span class="priority">P0</span><span class="queue-name">关键事件 / 紧急控制</span><div class="bar"><span id="q0"></span></div><span class="queue-value" id="q0v">8%</span></div>
+          <div class="queue-row"><span class="priority">P1</span><span class="queue-name">最新局部航迹</span><div class="bar"><span id="q1"></span></div><span class="queue-value" id="q1v">22%</span></div>
+          <div class="queue-row"><span class="priority">P2</span><span class="queue-name">点迹与特征片段</span><div class="bar"><span id="q2"></span></div><span class="queue-value" id="q2v">12%</span></div>
+          <div class="queue-row"><span class="priority">P3</span><span class="queue-name">日志与调试片段</span><div class="bar"><span id="q3"></span></div><span class="queue-value" id="q3v">5%</span></div>
+        </div>
+      </section>
+
+      <section class="panel">
+        <div class="panel-head"><h2>当前场景说明</h2><span class="tag" id="clock">0 s</span></div>
+        <div class="scene-copy"><strong id="sceneTitle">正常运行</strong><p id="sceneDescription">16 个节点保持在线，GF 经 5G 专网直连中心，队列维持低水位。</p></div>
+        <div class="log" id="log" aria-live="polite"></div>
+      </section>
+    </div>
+  </main>
+
+  <footer>参数依据：《系统架构关键参数详解》。建议使用 Chrome 或 Edge 直接打开；页面无需联网，也不上传任何数据。</footer>
+
+  <script>
+    const $=id=>document.getElementById(id);
+    const canvas=$('topology'),ctx=canvas.getContext('2d'),trend=$('trend'),tx=trend.getContext('2d');
+    const BB={BB1:[16.5,33.5],BB2:[16.5,16.5],BB3:[33.5,33.5],BB4:[33.5,16.5]};
+    const GF={GF1:[18,18],GF2:[25,18],GF3:[32,18],GF4:[18,25],GF5:[25,25],GF6:[32,25],GF7:[18,32],GF8:[25,32],GF9:[32,32],GF10:[5,25],GF11:[45,25],GF12:[25,5]};
+    const BBLabel={BB1:[-10,-11,'right'],BB2:[-10,-11,'right'],BB3:[10,-11,'left'],BB4:[10,-11,'left']};
+    const GFLabel={GF3:[-8,-7,'right'],GF9:[-8,-7,'right']};
+    const center=[25,25];
+    let running=true,scene='normal',tick=0,sceneTick=0,backlog=.2,history=[],logs=[],latencySamples=[],currentP95=28,lastPhase='normal';
+    const normalQueues=[8,22,12,5];
+    const lerp=(a,b,r)=>a+(b-a)*Math.max(0,Math.min(1,r));
+    const mixQueues=(from,to,r)=>from.map((v,i)=>lerp(v,to[i],r));
+    function stateAt(){
+      const t=sceneTick,normal={phase:'normal',label:'正常运行',online:16,uplink:20,capacity:100,loss:.2,latencyTarget:28,queues:normalQueues,routeMode:'normal',failedNode:false,title:'正常运行',desc:'16 个节点保持在线，GF 经 5G 专网直连中心，队列维持低水位。',attention:false,backlogRate:-.18,backlogLimit:24};
+      if(scene==='normal')return normal;
+      if(scene==='congestion'){
+        if(t<16){const r=Math.min(1,t/5);return{phase:'active',label:'拥塞持续',online:16,uplink:8,capacity:8,loss:lerp(.8,3.8,r),latencyTarget:lerp(42,126,r),queues:mixQueues(normalQueues,[12,44,78,92],r),routeMode:'congestion',failedNode:false,title:'链路拥塞：优先级调度生效',desc:'共享带宽降至约 8 Mbps，P2/P3 先降频并进入缓存；第 16 s 自动解除拥塞。',attention:true,backlogRate:.65,backlogLimit:24}}
+        if(t<24){const r=(t-16)/8;return{phase:'recovery',label:'拥塞恢复中',online:16,uplink:lerp(8,20,r),capacity:lerp(8,100,r),loss:lerp(3.8,.2,r),latencyTarget:lerp(126,28,r),queues:mixQueues([12,44,78,92],normalQueues,r),routeMode:'normal',failedNode:false,title:'带宽恢复：正在排空缓存',desc:'链路容量已经恢复，积压数据正在排空；近5秒 P95 会随统计窗口逐步回落。',attention:true,backlogRate:-1.35,backlogLimit:24}}
+        if(t<29)return{...normal,phase:'window',label:'P95 窗口更新',title:'链路已稳定：等待统计窗口更新',desc:'实时链路已经正常，近5秒窗口仍包含少量恢复阶段样本，P95 将继续平稳回落。',attention:true};
+        return{...normal,phase:'recovered',label:'拥塞恢复完成',title:'拥塞恢复完成',desc:'缓存已排空，吞吐、队列和近5秒 P95 均回到正常范围。'};
+      }
+      if(scene==='fiberFail'){
+        if(t<2)return{phase:'switching',label:'主备切换中',online:16,uplink:lerp(2,12,t/2),capacity:0,loss:lerp(4.8,3,t/2),latencyTarget:lerp(150,180,t/2),queues:[16,42,58,68],routeMode:'switching',failedNode:false,title:'主链路中断：正在切换',desc:'主链路暂时不可用，业务正在切换到 WiFi 6 → 邻近 BB → 光纤备份路径。',attention:true,backlogRate:1.1,backlogLimit:10};
+        if(t<16)return{phase:'backup',label:'备份路径承载',online:16,uplink:15.5,capacity:50,loss:1.2,latencyTarget:58,queues:[10,38,62,70],routeMode:'backup',failedNode:false,title:'备份路径承载',desc:'主备切换已经完成，关键业务继续上报；第 16 s 开始恢复主链路。',attention:true,backlogRate:.22,backlogLimit:10};
+        if(t<24){const r=(t-16)/8;return{phase:'recovery',label:'主链路恢复中',online:16,uplink:lerp(15.5,20,r),capacity:lerp(50,100,r),loss:lerp(1.2,.2,r),latencyTarget:lerp(58,28,r),queues:mixQueues([10,38,62,70],normalQueues,r),routeMode:r<.3?'backup':'normal',failedNode:false,title:'主链路恢复：统计窗口更新中',desc:'业务已逐步切回主路径，切换期间的高时延样本仍会在近5秒 P95 中短暂保留。',attention:true,backlogRate:-.75,backlogLimit:10}}
+        if(t<29)return{...normal,phase:'window',label:'P95 窗口更新',title:'主链路已稳定：等待统计窗口更新',desc:'业务已经回到主路径，近5秒窗口正在移除切换阶段的较高时延样本。',attention:true};
+        return{...normal,phase:'recovered',label:'链路恢复完成',title:'主链路恢复完成',desc:'业务已经回到主路径，近5秒 P95 恢复到约 28 ms。'};
+      }
+      if(t<16)return{phase:'active',label:'GF7 离线',online:15,uplink:18.8,capacity:100,loss:.8,latencyTarget:32,queues:[8,24,15,6],routeMode:'normal',failedNode:true,title:'GF7 离线：故障隔离',desc:'GF7 停止上报并被隔离，其余 15 个节点继续运行；第 16 s 模拟节点恢复。',attention:true,backlogRate:-.12,backlogLimit:4};
+      if(t<22){const r=(t-16)/6;return{phase:'recovery',label:'GF7 恢复中',online:16,uplink:lerp(18.8,20,r),capacity:100,loss:lerp(.8,.2,r),latencyTarget:lerp(32,28,r),queues:mixQueues([8,24,15,6],normalQueues,r),routeMode:'normal',failedNode:false,title:'GF7 重新接入',desc:'节点心跳和业务上报已经恢复，近5秒 P95 正在回到正常水平。',attention:true,backlogRate:-.15,backlogLimit:4}}
+      if(t<27)return{...normal,phase:'window',label:'P95 窗口更新',title:'GF7 已在线：等待统计窗口更新',desc:'16 个节点已经恢复在线，近5秒窗口正在更新为重新接入后的正常样本。',attention:true};
+      return{...normal,phase:'recovered',label:'节点恢复完成',title:'GF7 恢复完成',desc:'16 个节点全部在线，通信与队列状态恢复正常。'};
+    }
+    function addLatencyBatch(target,time=sceneTick){
+      for(let i=0;i<40;i++){const rank=((i*17+time*7)%40+40)%40,u=(rank+.5)/40,factor=u<=.95?.62+.38*(u/.95):1.04+.18*((u-.95)/.05),wave=1+.012*Math.sin((time*40+i)*.71);latencySamples.push({time,value:Math.max(1,target*factor*wave)})}
+      latencySamples=latencySamples.filter(x=>x.time>=time-4);const values=latencySamples.map(x=>x.value).sort((a,b)=>a-b);currentP95=values[Math.max(0,Math.ceil(values.length*.95)-1)]??target;
+    }
+    function seedLatencyWindow(){latencySamples=[];for(let t=-4;t<=0;t++)addLatencyBatch(28,t)}
+    function sx(x){return 62+x/50*(canvas.width-124)}
+    function sy(y){return 438-y/50*360}
+    function nearestBB(point){let best=null,dist=Infinity;for(const [name,p] of Object.entries(BB)){const d=(p[0]-point[0])**2+(p[1]-point[1])**2;if(d<dist){best=[name,p];dist=d}}return best}
+    function line(a,b,color,dash=[]){ctx.save();ctx.strokeStyle=color;ctx.lineWidth=2;ctx.setLineDash(dash);ctx.beginPath();ctx.moveTo(sx(a[0]),sy(a[1]));ctx.lineTo(sx(b[0]),sy(b[1]));ctx.stroke();ctx.restore()}
+    function drawTopology(state){
+      ctx.clearRect(0,0,canvas.width,canvas.height);ctx.fillStyle='#fffdfd';ctx.fillRect(0,0,canvas.width,canvas.height);
+      ctx.strokeStyle='#e1e4e6';ctx.lineWidth=1;ctx.font='14px Microsoft YaHei';ctx.fillStyle='#73777e';
+      for(let v=0;v<=50;v+=10){ctx.beginPath();ctx.moveTo(sx(v),sy(0));ctx.lineTo(sx(v),sy(50));ctx.stroke();ctx.beginPath();ctx.moveTo(sx(0),sy(v));ctx.lineTo(sx(50),sy(v));ctx.stroke();ctx.fillText(String(v),sx(v)-5,466)}
+      const pathColor=state.routeMode==='congestion'?'#efb65d':'#58b8e8';
+      for(const p of Object.values(BB))line(p,center,pathColor);
+      for(const [name,p] of Object.entries(GF)){
+        if(state.failedNode&&name==='GF7')continue;
+        if(state.routeMode==='backup'){const nearest=nearestBB(p)[1];line(p,nearest,'#efb65d',[7,5])}else if(state.routeMode==='switching')line(p,center,'#df596a',[7,5]);else line(p,center,pathColor,[7,5]);
+      }
+      for(const [name,p] of Object.entries(BB)){const x=sx(p[0]),y=sy(p[1]),label=BBLabel[name];ctx.fillStyle='#58b8e8';ctx.fillRect(x-7,y-7,14,14);ctx.strokeStyle='#242426';ctx.lineWidth=1.5;ctx.strokeRect(x-7,y-7,14,14);ctx.fillStyle='#242426';ctx.font='bold 15px Microsoft YaHei';ctx.textAlign=label[2];ctx.fillText(name,x+label[0],y+label[1])}
+      for(const [name,p] of Object.entries(GF)){const x=sx(p[0]),y=sy(p[1]),failed=state.failedNode&&name==='GF7',label=GFLabel[name]||[8,-7,'left'];ctx.beginPath();ctx.arc(x,y,6,0,Math.PI*2);ctx.fillStyle=failed?'#df596a':'#65c979';ctx.fill();ctx.strokeStyle='#242426';ctx.lineWidth=1.2;ctx.stroke();ctx.fillStyle=failed?'#b43c4c':'#42454a';ctx.font='14px Microsoft YaHei';ctx.textAlign=label[2];ctx.fillText(name,x+label[0],y+label[1])}
+      ctx.textAlign='left';
+      const cx=sx(center[0]),cy=sy(center[1]);ctx.fillStyle='#fff0f6';ctx.strokeStyle='#242426';ctx.lineWidth=2;ctx.beginPath();ctx.roundRect(cx-50,cy-23,100,46,10);ctx.fill();ctx.stroke();ctx.fillStyle='#242426';ctx.font='bold 16px Microsoft YaHei';ctx.textAlign='center';ctx.fillText('融合中心',cx,cy+6);ctx.textAlign='left';
+      ctx.fillStyle='#666a72';ctx.font='14px Microsoft YaHei';ctx.fillText('区域坐标 / km（仿真布局）',62,30);
+    }
+    function drawTrend(){
+      const data=history.slice(-50),w=trend.width,h=trend.height,left=118,right=w-18;
+      tx.clearRect(0,0,w,h);tx.fillStyle='#fffdfd';tx.fillRect(0,0,w,h);tx.font='13px Microsoft YaHei';
+      const rows=[
+        {key:'uplink',label:'上行吞吐',unit:'Mbps',max:24,color:'#58b8e8'},
+        {key:'latency',label:'P95 时延',unit:'ms',max:220,color:'#ef72a7'},
+        {key:'backlog',label:'队列积压',unit:'MB',max:24,color:'#65c979'}
+      ];
+      rows.forEach((row,index)=>{
+        const top=15+index*79,bottom=top+53;
+        tx.strokeStyle='#e2e5e7';tx.lineWidth=1;tx.beginPath();tx.moveTo(left,top);tx.lineTo(right,top);tx.moveTo(left,bottom);tx.lineTo(right,bottom);tx.stroke();
+        tx.fillStyle='#555a61';tx.fillText(row.label,14,top+22);tx.fillStyle=row.color;tx.font='bold 13px Microsoft YaHei';
+        const latest=data.length?data.at(-1)[row.key]:0;tx.fillText(`${Number(latest).toFixed(row.key==='latency'?0:1)} ${row.unit}`,14,top+43);tx.font='13px Microsoft YaHei';
+        if(!data.length)return;
+        tx.strokeStyle=row.color;tx.lineWidth=3;tx.lineJoin='round';tx.lineCap='round';tx.beginPath();
+        data.forEach((point,i)=>{const x=data.length===1?left:left+i/(data.length-1)*(right-left),ratio=Math.max(0,Math.min(1,point[row.key]/row.max)),y=bottom-ratio*(bottom-top-5)-2;i?tx.lineTo(x,y):tx.moveTo(x,y)});tx.stroke();
+        const last=data.at(-1),ratio=Math.max(0,Math.min(1,last[row.key]/row.max)),x=data.length===1?left:right,y=bottom-ratio*(bottom-top-5)-2;tx.beginPath();tx.arc(x,y,4,0,Math.PI*2);tx.fillStyle=row.color;tx.fill();tx.strokeStyle='#242426';tx.lineWidth=1;tx.stroke();
+      });
+      tx.fillStyle='#777b82';tx.font='12px Microsoft YaHei';tx.fillText(data.length?`${data[0].sceneElapsed}s`:'0s',left,h-8);tx.textAlign='right';tx.fillText(data.length?`${data.at(-1).sceneElapsed}s`:'0s',right,h-8);tx.textAlign='left';
+    }
+    function addLog(message){logs.unshift({time:tick,message});logs=logs.slice(0,5);renderLog()}
+    function renderLog(){const el=$('log');el.innerHTML=logs.map(x=>`<div class="log-item"><span class="log-time">${x.time}s</span><span>${x.message}</span></div>`).join('')}
+    function recordState(state){history.push({tick,sceneElapsed:sceneTick,scene,phase:state.phase,online:state.online,uplink:+state.uplink.toFixed(2),capacity:+state.capacity.toFixed(2),loss:+state.loss.toFixed(2),latency:+currentP95.toFixed(2),backlog:+backlog.toFixed(2),p0:Math.round(state.queues[0]),p1:Math.round(state.queues[1]),p2:Math.round(state.queues[2]),p3:Math.round(state.queues[3])});history=history.slice(-600)}
+    function render(state=stateAt()){
+      $('online').textContent=`${state.online}/16`;$('uplink').textContent=state.uplink.toFixed(1);$('capacity').textContent=state.capacity.toFixed(0);$('latency').textContent=Math.round(currentP95);$('latency').style.color=currentP95>100?'#c83f73':'#242426';$('loss').textContent=state.loss.toFixed(1);$('backlog').textContent=backlog.toFixed(1);
+      state.queues.forEach((v,i)=>{const value=Math.round(v);$(`q${i}`).style.width=value+'%';$(`q${i}v`).textContent=value+'%'});
+      $('sceneTag').textContent=state.label;$('sceneTitle').textContent=state.title;$('sceneDescription').textContent=state.desc;$('clock').textContent=sceneTick+' s';
+      $('healthText').textContent=state.attention?state.title:'系统运行正常';$('healthDot').style.background=state.attention?'#ef72a7':'#65c979';
+      document.querySelectorAll('.compare-card').forEach(card=>card.classList.toggle('active',card.dataset.compare===scene));
+      drawTopology(state);drawTrend();
+    }
+    function phaseLog(state){const messages={recovery:scene==='congestion'?'拥塞解除，恢复带宽并开始排空缓存':scene==='fiberFail'?'主链路恢复，业务逐步切回主路径':'GF7 恢复心跳并重新接入',backup:'主备切换完成，启用邻近 BB 备份回传',window:'链路状态已稳定，等待近5秒 P95 窗口更新',recovered:'恢复完成，近5秒 P95 回到正常范围'};if(messages[state.phase])addLog(messages[state.phase])}
+    function selectScene(next){scene=next;tick=0;sceneTick=0;backlog=.2;history=[];logs=[];running=true;$('runBtn').textContent='暂停';seedLatencyWindow();const state=stateAt();lastPhase=state.phase;document.querySelectorAll('.scene').forEach(b=>b.classList.toggle('active',b.dataset.scene===scene));addLog(scene==='normal'?'正常场景开始运行':`注入场景：${state.title}`);recordState(state);render(state)}
+    function step(){if(!running)return;tick++;sceneTick++;const state=stateAt();addLatencyBatch(state.latencyTarget);backlog=Math.max(.2,Math.min(state.backlogLimit,backlog+state.backlogRate));if(state.phase!==lastPhase){phaseLog(state);lastPhase=state.phase}if(scene==='congestion'&&sceneTick===8)addLog('P2/P3 已降频，P0/P1 保持优先传输');if(scene==='fiberFail'&&sceneTick===8)addLog('备份路径稳定承载关键状态');if(scene==='nodeFail'&&sceneTick===8)addLog('GF7 已隔离，其余节点运行正常');recordState(state);render(state)}
+    function reset(){selectScene('normal');addLog('仿真已重置')}
+    function exportCSV(){const rows=['time_s,scene_elapsed_s,scene,phase,online_nodes,uplink_mbps,capacity_mbps,loss_percent,p95_latency_ms_5s,backlog_mb,p0_percent,p1_percent,p2_percent,p3_percent',...history.map(h=>[h.tick,h.sceneElapsed,h.scene,h.phase,h.online,h.uplink,h.capacity,h.loss,h.latency,h.backlog,h.p0,h.p1,h.p2,h.p3].join(','))];const blob=new Blob(['\ufeff'+rows.join('\n')],{type:'text/csv;charset=utf-8'}),a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='network_edge_simulation.csv';a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000);addLog(`已导出 ${history.length} 行仿真数据`)}
+    document.querySelectorAll('.scene').forEach(b=>b.addEventListener('click',()=>selectScene(b.dataset.scene)));
+    $('runBtn').addEventListener('click',()=>{running=!running;$('runBtn').textContent=running?'暂停':'继续';addLog(running?'继续运行':'仿真已暂停')});
+    $('resetBtn').addEventListener('click',reset);$('exportBtn').addEventListener('click',exportCSV);
+    seedLatencyWindow();addLog('仿真初始化：BB×4、GF×12');const initialState=stateAt();recordState(initialState);render(initialState);setInterval(step,500);
+  </script>
+</body>
+</html>
+
